@@ -1,0 +1,35 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+# 2 websites (demo)
+urls = {
+    "Site1": "https://books.toscrape.com/",
+    "Site2": "https://books.toscrape.com/catalogue/page-2.html"
+}
+
+data = []
+
+for site, url in urls.items():
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    products = soup.find_all("article", class_="product_pod")
+
+    for product in products[:5]:  # first 5 products only
+        name = product.h3.a["title"]
+        price = product.find("p", class_="price_color").text
+
+        data.append([site, name, price])
+
+# Save to CSV
+with open("price_comparison.csv", "w", newline="", encoding="utf-8") as file:
+    writer = csv.writer(file)
+    
+    # Header
+    writer.writerow(["Website", "Product Name", "Price"])
+    
+    # Data
+    writer.writerows(data)
+
+print("✅ Price comparison data saved to price_comparison.csv")
