@@ -12,9 +12,9 @@ newsapi = NewsApiClient(api_key='9d4eeda9be3a408dab5a90b4844e2706')
 @st.cache_resource
 def train_model():
     try:
-        # Load your dataset files
-        fake_df = pd.read_csv('Fake.csv')
-        true_df = pd.read_csv('True.csv')
+        # Load your updated small dataset files
+        fake_df = pd.read_csv('fake_small.csv')
+        true_df = pd.read_csv('true_small.csv')
         
         # Assign labels
         fake_df['label'] = 'FAKE'
@@ -39,7 +39,7 @@ def train_model():
         
         return vectorizer, model
     except Exception as e:
-        st.error(f"Error loading datasets: {e}. Ensure 'Fake.csv' and 'True.csv' are in the folder.")
+        st.error(f"Error loading datasets: {e}. Ensure 'fake_small.csv' and 'true_small.csv' are in the folder.")
         return None, None
 
 # Initialize the Model
