@@ -5,16 +5,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import PassiveAggressiveClassifier
 
 # --- 1. API SETUP ---
-# Replace with your actual NewsAPI key if different
 newsapi = NewsApiClient(api_key='9d4eeda9be3a408dab5a90b4844e2706')
 
 # --- 2. AI MODEL TRAINING LOGIC ---
 @st.cache_resource
 def train_model():
     try:
-        # Load your updated small dataset files
-        fake_df = pd.read_csv('fake_small.csv')
-        true_df = pd.read_csv('true_small.csv')
+        # Note: Checked for exact case-sensitive filenames matching GitHub (Fake.csv and True.csv)
+        fake_df = pd.read_csv('Fake.csv')
+        true_df = pd.read_csv('True.csv')
         
         # Assign labels
         fake_df['label'] = 'FAKE'
@@ -27,9 +26,7 @@ def train_model():
         x = df['title'].values.astype('U') 
         y = df['label']
         
-        # UPDATED VECTORIZER: 
-        # 1. ngram_range=(1, 2) helps detect word pairs like "does not"
-        # 2. stop_words=None ensures words like "not" are NOT deleted
+        # Vectorizer configuration
         vectorizer = TfidfVectorizer(stop_words=None, max_df=0.7, ngram_range=(1, 2))
         x_train = vectorizer.fit_transform(x)
         
@@ -39,7 +36,7 @@ def train_model():
         
         return vectorizer, model
     except Exception as e:
-        st.error(f"Error loading datasets: {e}. Ensure 'fake_small.csv' and 'true_small.csv' are in the folder.")
+        st.error(f"Error loading datasets: {e}. Please ensure 'Fake.csv' and 'True.csv' are present in the repository root directory.")
         return None, None
 
 # Initialize the Model
@@ -62,25 +59,28 @@ with tab1:
     if st.button("Fetch & Analyze Live News"):
         if model:
             with st.spinner('Fetching latest news...'):
-                news_data = newsapi.get_everything(q=topic, language='en', sort_by='publishedAt')
-                articles = news_data['articles']
-                
-                if articles:
-                    for art in articles[:5]:
-                        title = art['title']
-                        input_data = vectorizer.transform([title])
-                        prediction = model.predict(input_data)
-                        
-                        with st.expander(f"📌 {title}"):
-                            if prediction == 'FAKE':
-                                st.error("🚩 Result: LIKELY FAKE NEWS")
-                            else:
-                                st.success("✅ Result: VERIFIED REAL NEWS")
+                try:
+                    news_data = newsapi.get_everything(q=topic, language='en', sort_by='publishedAt')
+                    articles = news_data.get('articles', [])
+                    
+                    if articles:
+                        for art in articles[:5]:
+                            title = art['title']
+                            input_data = vectorizer.transform([title])
+                            prediction = model.predict(input_data)
                             
-                            st.write(f"**Source:** {art['source']['name']}")
-                            st.markdown(f"[Read Full Article]({art['url']})")
-                else:
-                    st.warning("No articles found for this topic.")
+                            with st.expander(f"📌 {title}"):
+                                if prediction == 'FAKE':
+                                    st.error("🚩 Result: LIKELY FAKE NEWS")
+                                else:
+                                    st.success("✅ Result: VERIFIED REAL NEWS")
+                                
+                                st.write(f"**Source:** {art['source']['name']}")
+                                st.markdown(f"[Read Full Article]({art['url']})")
+                    else:
+                        st.warning("No articles found for this topic.")
+                except Exception as api_err:
+                    st.error(f"API Error: {api_err}")
         else:
             st.error("AI Model training failed.")
 
@@ -92,7 +92,6 @@ with tab2:
     if st.button("Verify This Text"):
         if user_news:
             if model:
-                # Predicting the user-provided text
                 manual_data = vectorizer.transform([user_news])
                 manual_pred = model.predict(manual_data)
                 
@@ -109,6 +108,6 @@ with tab2:
 st.sidebar.title("About Project")
 st.sidebar.info("""
 - **Model**: Passive Aggressive Classifier
-- **Features**: N-gram enabled (detects 'does not', 'is fake')
+- **Features**: N-gram enabled
 - **Real-Time**: NewsAPI Integration
 """)
